@@ -36,7 +36,7 @@ func normalizeQuery(query string) string {
 func queryStats(r methodRecorder, method string) queryContextFuncMiddleware {
 	return func(next queryContextFunc) queryContextFunc {
 		return func(ctx context.Context, query string, args []driver.NamedValue) (result driver.Rows, err error) {
-			end := r.Record(ctx, method, semconv.DBStatementKey.String(normalizeQuery(query)))
+			end := r.Record(ctx, method, semconv.DBStatementKey.String("test"+normalizeQuery(query)))
 
 			defer func() {
 				end(err)
