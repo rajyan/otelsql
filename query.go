@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql/driver"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	"regexp"
 )
 
 const (
@@ -25,11 +26,17 @@ func skippedQueryContext(_ context.Context, _ string, _ []driver.NamedValue) (dr
 	return nil, driver.ErrSkip
 }
 
+var rx = regexp.MustCompile(`IN \([^)]+\)`)
+
+func normalizeQuery(query string) string {
+	return rx.ReplaceAllString(query, "IN (?)")
+}
+
 // queryStats records metrics for query.
 func queryStats(r methodRecorder, method string) queryContextFuncMiddleware {
 	return func(next queryContextFunc) queryContextFunc {
 		return func(ctx context.Context, query string, args []driver.NamedValue) (result driver.Rows, err error) {
-			end := r.Record(ctx, method, semconv.DBStatementKey.String(query))
+			end := r.Record(ctx, method, semconv.DBStatementKey.String(normalizeQuery(query)))
 
 			defer func() {
 				end(err)
