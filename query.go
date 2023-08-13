@@ -3,6 +3,7 @@ package otelsql
 import (
 	"context"
 	"database/sql/driver"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
 const (
@@ -28,7 +29,7 @@ func skippedQueryContext(_ context.Context, _ string, _ []driver.NamedValue) (dr
 func queryStats(r methodRecorder, method string) queryContextFuncMiddleware {
 	return func(next queryContextFunc) queryContextFunc {
 		return func(ctx context.Context, query string, args []driver.NamedValue) (result driver.Rows, err error) {
-			end := r.Record(ctx, method)
+			end := r.Record(ctx, method, semconv.DBStatementKey.String(query))
 
 			defer func() {
 				end(err)
