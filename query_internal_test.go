@@ -29,7 +29,7 @@ func BenchmarkQueryStats(b *testing.B) {
 	)
 
 	query := chainMiddlewares([]queryContextFuncMiddleware{
-		queryStats(r, metricMethodQuery),
+		queryStats(r, recordNoQuery, metricMethodQuery),
 	}, nopQueryContext)
 
 	for i := 0; i < b.N; i++ {
@@ -169,7 +169,7 @@ func TestQueryStats(t *testing.T) {
 					)
 
 					query := chainMiddlewares([]queryContextFuncMiddleware{
-						queryStats(r, metricMethodQuery),
+						queryStats(r, recordNoQuery, metricMethodQuery),
 					}, tc.query)
 
 					_, _ = query(context.Background(), "", nil) // nolint: errcheck

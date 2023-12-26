@@ -25,13 +25,13 @@ func skippedExecContext(_ context.Context, _ string, _ []driver.NamedValue) (dri
 }
 
 // execStats records metrics for exec.
-func execStats(r methodRecorder, method string) execContextFuncMiddleware {
+func execStats(r methodRecorder, recordQuery queryRecorder, method string) execContextFuncMiddleware {
 	return func(next execContextFunc) execContextFunc {
 		return func(ctx context.Context, query string, args []driver.NamedValue) (result driver.Result, err error) {
 			end := r.Record(ctx, method)
 
 			defer func() {
-				end(err)
+				end(err, recordQuery(ctx, query, args)...)
 			}()
 
 			return next(ctx, query, args)
@@ -73,7 +73,7 @@ func execWrapResult(t methodTracer, traceLastInsertID bool, traceRowsAffected bo
 func makeExecContextFuncMiddlewares(r methodRecorder, t methodTracer, cfg execConfig) []execContextFuncMiddleware {
 	middlewares := make([]middleware[execContextFunc], 0, 3)
 
-	middlewares = append(middlewares, execStats(r, cfg.metricMethod))
+	middlewares = append(middlewares, execStats(r, cfg.recordQuery, cfg.metricMethod))
 
 	if t == nil {
 		return middlewares
@@ -90,6 +90,7 @@ func makeExecContextFuncMiddlewares(r methodRecorder, t methodTracer, cfg execCo
 
 type execConfig struct {
 	metricMethod      string
+	recordQuery       queryRecorder
 	traceMethod       string
 	traceQuery        queryTracer
 	traceLastInsertID bool
@@ -99,6 +100,7 @@ type execConfig struct {
 func newExecConfig(opts driverOptions, metricMethod, traceMethod string) execConfig {
 	return execConfig{
 		metricMethod:      metricMethod,
+		recordQuery:       opts.recordQuery,
 		traceMethod:       traceMethod,
 		traceQuery:        opts.trace.queryTracer,
 		traceLastInsertID: opts.trace.LastInsertID,

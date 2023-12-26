@@ -2,6 +2,7 @@ package otelsql
 
 import (
 	"context"
+	"database/sql/driver"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -17,8 +18,10 @@ type int64Counter = func(ctx context.Context, value int64, opts ...metric.AddOpt
 
 // methodRecorder records metrics about a sql method.
 type methodRecorder interface {
-	Record(ctx context.Context, method string, labels ...attribute.KeyValue) func(err error)
+	Record(ctx context.Context, method string, labels ...attribute.KeyValue) func(err error, attrs ...attribute.KeyValue)
 }
+
+type queryRecorder func(ctx context.Context, query string, args []driver.NamedValue) []attribute.KeyValue
 
 type methodRecorderImpl struct {
 	recordLatency float64Recorder
@@ -27,7 +30,7 @@ type methodRecorderImpl struct {
 	attributes []attribute.KeyValue
 }
 
-func (r methodRecorderImpl) Record(ctx context.Context, method string, labels ...attribute.KeyValue) func(err error) {
+func (r methodRecorderImpl) Record(ctx context.Context, method string, labels ...attribute.KeyValue) func(err error, attrs ...attribute.KeyValue) {
 	startTime := time.Now()
 
 	attrs := make([]attribute.KeyValue, 0, len(r.attributes)+len(labels)+2)
@@ -36,12 +39,14 @@ func (r methodRecorderImpl) Record(ctx context.Context, method string, labels ..
 	attrs = append(attrs, labels...)
 	attrs = append(attrs, semconv.DBOperationKey.String(method))
 
-	return func(err error) {
+	return func(err error, labels ...attribute.KeyValue) {
 		elapsedTime := millisecondsSince(startTime)
 
 		if err == nil {
+			attrs = append(attrs, labels...)
 			attrs = append(attrs, dbSQLStatusOK)
 		} else {
+			attrs = append(attrs, labels...)
 			attrs = append(attrs, dbSQLStatusERROR,
 				dbSQLError.String(err.Error()),
 			)
@@ -63,3 +68,5 @@ func newMethodRecorder(
 		attributes:    attrs,
 	}
 }
+
+func recordNoQuery(context.Context, string, []driver.NamedValue) []attribute.KeyValue { return nil }

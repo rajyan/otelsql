@@ -29,7 +29,7 @@ func BenchmarkExecStats(b *testing.B) {
 	)
 
 	exec := chainMiddlewares([]execContextFuncMiddleware{
-		execStats(r, metricMethodExec),
+		execStats(r, recordNoQuery, metricMethodExec),
 	}, nopExecContext)
 
 	for i := 0; i < b.N; i++ {
@@ -169,7 +169,7 @@ func TestExecStats(t *testing.T) {
 					)
 
 					exec := chainMiddlewares([]execContextFuncMiddleware{
-						execStats(r, metricMethodExec),
+						execStats(r, recordNoQuery, metricMethodExec),
 					}, tc.execer)
 
 					_, _ = exec(context.Background(), "", nil) // nolint: errcheck

@@ -33,7 +33,8 @@ type driverOptions struct {
 	tracerProvider trace.TracerProvider
 	meterProvider  metric.MeterProvider
 
-	trace TraceOptions
+	recordQuery queryRecorder
+	trace       TraceOptions
 
 	// defaultAttributes will be set to each span and metrics as default.
 	defaultAttributes []attribute.KeyValue

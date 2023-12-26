@@ -94,6 +94,8 @@ func Wrap(d driver.Driver, opts ...DriverOption) driver.Driver {
 		tracerProvider: otel.GetTracerProvider(),
 	}
 
+	o.recordQuery = recordNoQuery
+
 	o.trace.spanNameFormatter = formatSpanName
 	o.trace.errorToSpanStatus = spanStatusFromError
 	o.trace.queryTracer = traceNoQuery

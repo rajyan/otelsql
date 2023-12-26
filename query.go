@@ -25,13 +25,13 @@ func skippedQueryContext(_ context.Context, _ string, _ []driver.NamedValue) (dr
 }
 
 // queryStats records metrics for query.
-func queryStats(r methodRecorder, method string) queryContextFuncMiddleware {
+func queryStats(r methodRecorder, recordQuery queryRecorder, method string) queryContextFuncMiddleware {
 	return func(next queryContextFunc) queryContextFunc {
 		return func(ctx context.Context, query string, args []driver.NamedValue) (result driver.Rows, err error) {
 			end := r.Record(ctx, method)
 
 			defer func() {
-				end(err)
+				end(err, recordQuery(ctx, query, args)...)
 			}()
 
 			result, err = next(ctx, query, args)
@@ -77,7 +77,7 @@ func queryWrapRows(t methodTracer, traceLastInsertID bool, traceRowsAffected boo
 func makeQueryerContextMiddlewares(r methodRecorder, t methodTracer, cfg queryConfig) []queryContextFuncMiddleware {
 	middlewares := make([]queryContextFuncMiddleware, 0, 3)
 
-	middlewares = append(middlewares, queryStats(r, cfg.metricMethod))
+	middlewares = append(middlewares, queryStats(r, cfg.recordQuery, cfg.metricMethod))
 
 	if t == nil {
 		return middlewares
@@ -94,6 +94,7 @@ func makeQueryerContextMiddlewares(r methodRecorder, t methodTracer, cfg queryCo
 
 type queryConfig struct {
 	metricMethod   string
+	recordQuery    queryRecorder
 	traceMethod    string
 	traceQuery     queryTracer
 	traceRowsNext  bool
@@ -103,6 +104,7 @@ type queryConfig struct {
 func newQueryConfig(opts driverOptions, metricMethod, traceMethod string) queryConfig {
 	return queryConfig{
 		metricMethod:   metricMethod,
+		recordQuery:    opts.recordQuery,
 		traceMethod:    traceMethod,
 		traceQuery:     opts.trace.queryTracer,
 		traceRowsNext:  opts.trace.RowsNext,
