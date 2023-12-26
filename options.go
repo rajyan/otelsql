@@ -139,6 +139,13 @@ func DisableErrSkip() DriverOption {
 	return ConvertErrorToSpanStatus(spanStatusFromErrorIgnoreErrSkip)
 }
 
+// RecordQuery sets a custom functions that will return a list of attributes to add to the metrics with a given query and args.
+func RecordQuery(f queryRecorder) DriverOption {
+	return driverOptionFunc(func(o *driverOptions) {
+		o.recordQuery = f
+	})
+}
+
 // TraceQuery sets a custom function that will return a list of attributes to add to the spans with a given query and args.
 //
 // For example:
